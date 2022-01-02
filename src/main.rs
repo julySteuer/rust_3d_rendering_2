@@ -1,29 +1,37 @@
 extern crate glium;
-use glium::implement_vertex;
 use lib3d::structure::{Mats, Vertex::{Vertex2d, self, GLVertex3d}, Polygon};
 use glium::{glutin, Surface};
 
 fn main() {
-    let vertex1 = Vertex::GLVertex2d { position: [-0.5, -0.5] };
-    let vertex2 = Vertex::GLVertex2d { position: [ 0.0,  0.5] };
-    let vertex3 = Vertex::GLVertex2d { position: [ 0.5, -0.25] };
-    let shape = vec![vertex3, vertex1, vertex2];
-    let polys = Vertex::load_from_obj(String::from("exported3.obj"));//CHANGE HERE TO OTHER OBJ FILES
-    let mut new_vert: Vec<GLVertex3d> = Vec::new(); 
-    for i in polys{
-        Polygon::polygon_to_renderable(i, &mut new_vert)
+    let (vertices, normals, polygons) = Vertex::load_from_obj(String::from("exported2.obj"));//CHANGE HERE TO OTHER OBJ FILES
+    let mut real_vertices:Vec<GLVertex3d> = Vec::new();
+    let mut indecies:Vec<u16> = Vec::new();
+    let mut real_normals: Vec<GLVertex3d> = Vec::new();
+    real_normals.push(Vertex::Vertex::new(0.0, 0.0,0.0).to());
+    real_vertices.push(Vertex::Vertex::new(0.0,0.0,0.0).to());
+    for i in vertices{
+        real_vertices.push(i.to())
     }
-    //new_vert = new_vert.into_iter().rev().collect();
+    for i in polygons {
+        for s in Polygon::polygon_to_renderable(i){
+            indecies.push(s);
+        }
+    }
+    for i in normals {//shift normals one to right i think
+        real_normals.push(i.to());
+    }
     let event_loop = glutin::event_loop::EventLoop::new();
     let wb = glutin::window::WindowBuilder::new();
     let cb = glutin::ContextBuilder::new();
     let display = glium::Display::new(wb, cb, &event_loop).unwrap();
-    let vertex_buffer = glium::VertexBuffer::new(&display, &new_vert).unwrap(); // multible objects in one VBO with index buffer 
-    let index_buffer = glium::index::NoIndices(glium::index::PrimitiveType::TrianglesList);
+    let vertex_buffer = glium::VertexBuffer::new(&display, &real_vertices).unwrap(); // multible objects in one VBO with index buffer 
+    let index_buffer = glium::IndexBuffer::new(&display, glium::index::PrimitiveType::TrianglesList, &indecies).unwrap();
+    let normals = glium::VertexBuffer::new(&display, &real_normals).unwrap();
     let vertex_shader_src = r#"
     #version 140
 
     in vec3 position;
+    in vec3 normals;
 
     void main() {
         gl_Position = vec4(position, 1.0);
@@ -46,7 +54,7 @@ fn main() {
 
         let mut target = display.draw();
         target.clear_color(0.0, 0.0, 1.0, 1.0);
-        target.draw(&vertex_buffer, &index_buffer, &program, &glium::uniforms::EmptyUniforms,
+        target.draw((&vertex_buffer, &normals), &index_buffer, &program, &glium::uniforms::EmptyUniforms,
             &Default::default()).unwrap();
         target.finish().unwrap();
 

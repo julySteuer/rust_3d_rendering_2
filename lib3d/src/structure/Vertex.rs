@@ -13,15 +13,15 @@ pub struct Vertex2d {
     y: f64
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct GLVertex2d {
     pub position: [f32; 2]
 }
 implement_vertex!(GLVertex2d, position);
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct GLVertex3d {
-    position: [f32; 3]
+    pub position: [f32; 3]
 }
 implement_vertex!(GLVertex3d, position);
 
@@ -52,7 +52,7 @@ impl Vertex {
     }
 }
 
-pub fn load_from_obj(path: String)-> Vec<Polygon> { // TODO: fore every face thees is a normal not for evey polygon 
+pub fn load_from_obj(path: String)-> (Vec<Vertex>, Vec<Vertex>, Vec<Polygon>) { // TODO: fore every face thees is a normal not for evey polygon 
     let mut vertices: Vec<Vertex> = Vec::new();
     let mut polygons: Vec<Polygon> = Vec::new();
     let mut normals: Vec<Vertex> = Vec::new();
@@ -70,15 +70,14 @@ pub fn load_from_obj(path: String)-> Vec<Polygon> { // TODO: fore every face the
             },
             "f" => {
                 if polygons.is_empty() {
-                    calc_magnitude(&mut vertices);
+                    //calc_magnitude(&mut vertices);
                 } 
                 let mut polygon: Polygon = Default::default(); 
                 for i in &tokens[1..=3]{
                     let elem: Vec<&str> = i.split("/").collect();
-                    polygon.vertecies.push(vertices[elem[0].trim_end().parse::<usize>().unwrap()-1]);
-                    polygon.normal = normals[elem[2].trim_end().parse::<usize>().unwrap()-1];
+                    polygon.vertecies.push(elem[0].trim_end().parse::<u16>().unwrap()-1);
+                    polygon.normal = elem[2].trim_end().parse::<u16>().unwrap();
                 }
-                println!("{:?}", polygon);
                 polygons.push(polygon);
             },
             "vn" => {
@@ -91,7 +90,7 @@ pub fn load_from_obj(path: String)-> Vec<Polygon> { // TODO: fore every face the
             _ => ()
         }
     }
-    polygons
+    (vertices, normals, polygons)
 }
 
 pub fn calc_magnitude(vertices: &mut Vec<Vertex>){
